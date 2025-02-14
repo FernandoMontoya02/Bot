@@ -7,7 +7,7 @@ const qrcode = require('qrcode-terminal');
 const { readUsers, writeUsers } = require('./utils');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000; // Usa el puerto de Render o 3000 localmente
 
 let users = readUsers();
 let gruposDeshabilitados = [];
@@ -15,14 +15,19 @@ let sock;
 let qrCodeData = '';
 let connectionStatus = 'Desconectado';
 
-app.use(express.static('public'));
+app.use(express.static('public')); // Sirve archivos estáticos desde la carpeta 'public'
+
+// Ruta para servir el archivo HTML (index.html)
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html')); // Asegúrate de que tu HTML esté en la carpeta 'public'
+});
 
 app.get('/qr', (req, res) => {
-    res.send(qrCodeData);
+    res.send(qrCodeData); // Devuelve el código QR generado por WhatsApp
 });
 
 app.get('/status', (req, res) => {
-    res.send(connectionStatus);
+    res.send(connectionStatus); // Devuelve el estado de la conexión del bot
 });
 
 app.get('/logout', (req, res) => {
@@ -34,6 +39,7 @@ app.get('/logout', (req, res) => {
     res.send('Sesión cerrada. Escanea el nuevo código QR.');
 });
 
+// Función para iniciar el bot de WhatsApp
 async function iniciarBot() {
     const { state, saveCreds } = await useMultiFileAuthState('session');
     sock = makeWASocket({ auth: state });
@@ -72,7 +78,7 @@ async function iniciarBot() {
             const texto = mensaje.message.conversation || mensaje.message.extendedTextMessage?.text;
 
             if (!texto) return; // Asegurarse de que texto no sea undefined
-            
+
             require('./commands/admin/fantasmas').monitorActividad(sock, mensaje);
 
             if (!users[remitente]) {
@@ -131,8 +137,10 @@ async function iniciarBot() {
     });
 }
 
+// Iniciar el bot
 iniciarBot();
 
+// Iniciar el servidor en el puerto proporcionado por Render o 3000 de manera predeterminada
 app.listen(port, () => {
     console.log(`Servidor web iniciado en http://localhost:${port}`);
 });
